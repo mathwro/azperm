@@ -17,6 +17,8 @@ func main() {
 		helpShort    = flag.Bool("h", false, "Show help information (short)")
 		debugMode    = flag.Bool("debug", false, "Enable debug mode with verbose output")
 		debugShort   = flag.Bool("d", false, "Enable debug mode with verbose output (short)")
+		lastCommand  = flag.Bool("last", false, "Analyze the last Azure CLI command from shell history")
+		lastShort    = flag.Bool("l", false, "Analyze the last Azure CLI command from shell history (short)")
 	)
 	
 	flag.Parse()
@@ -41,8 +43,20 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Handle last command flag
+	if *lastCommand || *lastShort {
+		if err := cli.RunWithLastCommand(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	// Get remaining command line arguments (the Azure CLI command)
+	args := flag.Args()
+
 	// Run the main CLI logic (always uses live Azure API)
-	if err := cli.Run(); err != nil {
+	if err := cli.RunWithArgs(args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

@@ -47,29 +47,91 @@ func (c *CLI) SetDebugMode(enabled bool) {
 
 // Run executes the main CLI logic
 func (c *CLI) Run() error {
+	return c.RunWithArgs(nil)
+}
+
+// RunWithLastCommand executes the CLI logic using the last Azure CLI command from shell history
+func (c *CLI) RunWithLastCommand() error {
+	if c.debugMode {
+		c.colors.Info.Println("🔍 Debug: Starting RunWithLastCommand")
+	}
+	
 	// Load permissions database
 	c.permManager.LoadPermissions()
 
-	// Check if input is piped
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to check stdin: %w", err)
+	if c.debugMode {
+		c.colors.Info.Println("🔍 Debug: Permissions database loaded")
 	}
 
-	var azCommand string
+	// Get last Azure CLI command from shell history
+	azCommand, err := c.getLastAzureCommand()
+	if err != nil {
+		return fmt.Errorf("failed to get last Azure command from history: %w", err)
+	}
 
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		// Input is piped
-		azCommand, err = c.readPipedInput()
-		if err != nil {
-			return fmt.Errorf("failed to read piped input: %w", err)
+	if c.debugMode {
+		c.colors.Info.Printf("🔍 Debug: Found command: %s\n", azCommand)
+	}
+
+	// Parse the Azure CLI command
+	cmd, err := parser.ParseAzureCommand(azCommand)
+	if err != nil {
+		return fmt.Errorf("failed to parse Azure command: %w", err)
+	}
+
+	if c.debugMode {
+		c.colors.Info.Printf("🔍 Debug: Parsed command: %+v\n", cmd)
+	}
+
+	// Get permissions using live Azure API querying
+	permissions, _ := c.getPermissions(cmd)
+
+	if len(permissions) == 0 {
+		c.colors.ShowNoPermissionsWarning(cmd.FullCmd, true)
+		return fmt.Errorf("failed to retrieve permissions from Azure API")
+	}
+
+	// Always display results with live query indication since we always use live mode
+	c.colors.DisplayPermissionsWithLiveQuery(cmd, permissions)
+
+	return nil
+}
+
+// RunWithArgs executes the main CLI logic with optional command line arguments
+func (c *CLI) RunWithArgs(args []string) error {
+	// Load permissions database
+	c.permManager.LoadPermissions()
+
+	var azCommand string
+	var err error
+
+	// If args are provided, use them directly
+	if len(args) > 0 {
+		azCommand = strings.Join(args, " ")
+		// Validate that it's an Azure CLI command
+		if !strings.HasPrefix(azCommand, "az ") {
+			return fmt.Errorf("command must start with 'az': %s", azCommand)
 		}
 	} else {
-		// No piped input, try to get last Azure CLI command from shell history
-		azCommand, err = c.getLastAzureCommand()
+		// Check if input is piped
+		stat, err := os.Stdin.Stat()
 		if err != nil {
-			c.colors.ShowUsage()
-			return nil
+			return fmt.Errorf("failed to check stdin: %w", err)
+		}
+
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			// Input is piped
+			azCommand, err = c.readPipedInput()
+			if err != nil {
+				return fmt.Errorf("failed to read piped input: %w", err)
+			}
+		} else {
+			// No piped input, try to get last Azure CLI command from shell history
+			azCommand, err = c.getLastAzureCommand()
+			if err != nil {
+				c.colors.ShowUsage()
+				return nil
+			}
 		}
 	}
 
