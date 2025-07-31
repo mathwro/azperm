@@ -71,7 +71,7 @@ func (c *Colors) DisplayPermissions(cmd *models.AzureCommand, permissions []stri
 	// Add confidence explanation for lower confidence levels
 	if confidence == models.ConfidenceLow {
 		fmt.Println()
-		c.Warning.Println("💡 Tip: Run 'azperm --discover' to improve accuracy with REST API integration")
+		c.Warning.Println("💡 These are intelligent guesses - live Azure API provides definitive permissions")
 	}
 
 	fmt.Println()
@@ -156,10 +156,16 @@ func (c *Colors) ShowUsage() {
 	fmt.Println("  ✅ Real-time accuracy - no cached or outdated data")
 	fmt.Println("  ✅ Dynamic discovery of ALL Azure CLI commands")
 	fmt.Println("  ✅ Cross-platform support (Windows, Linux, macOS)")
+	fmt.Println("  ✅ Auto-detects Azure cloud environment (Public, Government, China)")
 	fmt.Println()
 	c.Warning.Println("REQUIREMENTS:")
 	fmt.Println("  • Azure CLI installed and logged in (az login)")
 	fmt.Println("  • Internet connection for live Azure API integration")
+	fmt.Println()
+	c.Info.Println("CONFIGURATION:")
+	fmt.Println("  Environment variables:")
+	fmt.Println("  • AZPERM_API_VERSION - Override Azure Management API version")
+	fmt.Println("  • AZPERM_MANAGEMENT_ENDPOINT - Override management endpoint URL")
 }
 
 // ShowNoPermissionsWarning displays a warning when no permissions are found
@@ -169,6 +175,6 @@ func (c *Colors) ShowNoPermissionsWarning(command string, isLive bool) {
 	if isLive {
 		c.Info.Println("   💡 This was queried live from Azure API")
 	} else {
-		c.Info.Println("   💡 Try running 'azperm --discover' to update the permission database")
+		c.Info.Println("   💡 Could not retrieve permissions from Azure API")
 	}
 }

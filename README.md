@@ -61,7 +61,7 @@ go build -o azperm.exe  # Windows
 - ✅ **REST API Integration** - Definitive permissions from Azure REST API specs
 - ✅ **Confidence Levels** - Know how certain the permissions are
 - ✅ **Direct command support** - No quotes or pipes needed
-- ✅ **Dynamic discovery** - Supports ALL Azure CLI commands (`azperm --discover`)
+- ✅ **Dynamic discovery** - Supports ALL Azure CLI commands (live API querying)
 - ✅ **Cross-platform** - Windows, Linux, macOS
 - ✅ **History analysis** - Analyze your last Azure CLI command
 - ✅ **Single binary** - No dependencies
@@ -71,7 +71,6 @@ go build -o azperm.exe  # Windows
 ```bash
 azperm --help           # Show help
 azperm --last           # Analyze last Azure CLI command from history
-azperm --discover       # Update permissions database with REST API integration
 azperm --version        # Show version
 ```
 
@@ -103,14 +102,33 @@ azperm az redis create --name myRedis --resource-group myRG
 ### Low Confidence (Intelligent Guess) 🤔
 ```bash
 # Unknown or new services fall back to intelligent inference
-# Tip: Run 'azperm --discover' to improve accuracy
+# Live Azure API provides maximum accuracy
 ```
 
 ## Requirements
 
 - Azure CLI installed (`az --version`)
-- For discovery feature: logged in to Azure (`az login`)
+- Logged in to Azure (`az login`)
 - Internet connection for REST API integration
+
+## Configuration
+
+The tool automatically detects your Azure cloud environment from Azure CLI, but you can override settings using environment variables:
+
+- `AZPERM_API_VERSION` - Override the Azure Management API version (default: `2022-04-01`)
+- `AZPERM_MANAGEMENT_ENDPOINT` - Override the Azure Management endpoint URL (auto-detected from `az cloud show`)
+
+### Examples
+
+```bash
+# Use a different API version
+$env:AZPERM_API_VERSION = "2022-09-01"
+azperm az group list
+
+# Use a custom management endpoint (for private clouds)
+$env:AZPERM_MANAGEMENT_ENDPOINT = "https://management.example.com"
+azperm az vm list
+```
 
 ## License
 

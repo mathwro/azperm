@@ -231,8 +231,6 @@ func (c *CLI) getLastAzureCommand() (string, error) {
 func (c *CLI) getPermissions(cmd *models.AzureCommand) ([]string, models.ConfidenceLevel) {
 	// Always try to get permissions from live Azure API first
 	if permissions, err := c.getLivePermissions(cmd); err == nil && len(permissions) > 0 {
-		// Cache the result for future use
-		c.permManager.CachePermission(cmd.FullCmd, permissions)
 		return permissions, models.ConfidenceHigh
 	}
 
@@ -253,6 +251,15 @@ func (c *CLI) getLivePermissions(cmd *models.AzureCommand) ([]string, error) {
 	}
 
 	c.colors.Info.Println("🔍 Querying Azure API for permissions...")
+
+	// Show debug info about the endpoint being used if debug mode is enabled
+	if c.debugMode {
+		if cloudName, endpoint, source, err := c.azureClient.GetEffectiveCloudInfo(); err == nil {
+			c.colors.Info.Printf("🌐 Using Azure cloud: %s\n", cloudName)
+			c.colors.Info.Printf("🔗 Management endpoint: %s (source: %s)\n", endpoint, source)
+		}
+		c.colors.Info.Printf("📋 API version: %s\n", c.azureClient.GetAPIVersion())
+	}
 
 	// Use the real Azure API with the access token
 	operations, err := c.azureClient.FetchRealProviderOperations(accessToken)
@@ -371,8 +378,19 @@ func (c *CLI) mapServiceToProvider(service string) string {
 		"sql":        "Microsoft.Sql",
 		"aks":        "Microsoft.ContainerService",
 		"role":       "Microsoft.Authorization",
+		"container":  "Microsoft.ContainerInstance",
 	}
 
+	// Handle compound services first (more specific matches)
+	if strings.Contains(service, "storage") && strings.Contains(service, "account") {
+		return "Microsoft.Storage"
+	}
+	
+	// Handle storage data plane operations (storage + anything else that's not "account")
+	if strings.Contains(service, "storage") && !strings.Contains(service, "account") {
+		return "Microsoft.Storage"
+	}
+	
 	for key, provider := range serviceMap {
 		if strings.Contains(service, key) {
 			return provider
@@ -392,6 +410,7 @@ func (c *CLI) matchesResourceType(cmd *models.AzureCommand, resourceType string)
 	}
 	
 	// Control plane operations - use precise mappings
+	// For "storage account" commands, we need to match exactly "storageAccounts", not sub-resources
 	serviceOperationToResourceTypes := map[string]map[string][]string{
 		"group": {
 			"create": {"subscriptions/resourcegroups"},
@@ -407,6 +426,13 @@ func (c *CLI) matchesResourceType(cmd *models.AzureCommand, resourceType string)
 			"restart": {"virtualmachines"},
 			"list":   {"virtualmachines"},
 			"show":   {"virtualmachines", "virtualmachines/instanceview"},
+		},
+		"storage account": {
+			"create": {"storageaccounts"},
+			"delete": {"storageaccounts"},
+			"list":   {"storageaccounts"},
+			"show":   {"storageaccounts"},
+			"update": {"storageaccounts"},
 		},
 		"storage": {
 			"create": {"storageaccounts"},
@@ -437,18 +463,31 @@ func (c *CLI) matchesResourceType(cmd *models.AzureCommand, resourceType string)
 			"start":  {"managedclusters"},
 			"stop":   {"managedclusters"},
 		},
+		"container": {
+			"create": {"containergroups"},
+			"delete": {"containergroups"},
+			"list":   {"containergroups"},
+			"show":   {"containergroups"},
+			"start":  {"containergroups"},
+			"stop":   {"containergroups"},
+			"restart": {"containergroups"},
+		},
 	}
 
+	// Try exact service match first (for compound services like "storage account")
 	if serviceOps, exists := serviceOperationToResourceTypes[service]; exists {
 		if resourceTypes, opExists := serviceOps[operation]; opExists {
 			normalizedResType := strings.ReplaceAll(resType, "/", "")
 			for _, resourceTypePattern := range resourceTypes {
 				normalizedPattern := strings.ReplaceAll(resourceTypePattern, "/", "")
+				// Exact match for the main resource type
 				if normalizedResType == normalizedPattern {
 					return true
 				}
 			}
 		}
+		// If we have a specific mapping for this service, don't fall through to generic matching
+		return false
 	}
 	
 	return false
@@ -462,6 +501,21 @@ func (c *CLI) isDataPlaneOperation(cmd *models.AzureCommand) bool {
 	// Check for multi-part service names that typically indicate data plane operations
 	serviceParts := strings.Fields(service)
 	if len(serviceParts) >= 2 {
+		// Special cases for control plane operations that have multi-part names
+		controlPlaneExceptions := []string{
+			"storage account",    // az storage account create
+			"network vnet",       // az network vnet create  
+			"network nsg",        // az network nsg create
+			"app service",        // az webapp (app service)
+			"key vault",          // sometimes referenced as "key vault"
+		}
+		
+		for _, exception := range controlPlaneExceptions {
+			if service == exception {
+				return false // This is a control plane operation
+			}
+		}
+		
 		// Multi-part service names (like "keyvault secret" or "storage blob") 
 		// are strong indicators of data plane operations
 		return true

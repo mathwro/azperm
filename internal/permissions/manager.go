@@ -1,9 +1,7 @@
 package permissions
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -24,18 +22,10 @@ func NewManager() *Manager {
 	}
 }
 
-// LoadPermissions loads permissions from file or uses defaults
+// LoadPermissions loads default permissions (no file caching)
 func (m *Manager) LoadPermissions() {
-	// Try to load from permissions.json file
-	if data, err := os.ReadFile("permissions.json"); err == nil {
-		if err := json.Unmarshal(data, &m.mappings); err != nil {
-			fmt.Printf("Warning: Failed to parse permissions.json: %v\n", err)
-			m.loadDefaultPermissions()
-		}
-	} else {
-		// File doesn't exist, use defaults
-		m.loadDefaultPermissions()
-	}
+	// Always use default permissions - no file caching
+	m.loadDefaultPermissions()
 }
 
 // loadDefaultPermissions sets up default permission mappings
@@ -129,28 +119,6 @@ func (m *Manager) suggestPermissionsByOperation(cmd *models.AzureCommand) []stri
 	}
 
 	return []string{}
-}
-
-// SavePermissions saves the current permission mappings to file
-func (m *Manager) SavePermissions() error {
-	data, err := json.MarshalIndent(m.mappings, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile("permissions.json", data, 0644)
-}
-
-// CachePermission caches a permission mapping for future use
-func (m *Manager) CachePermission(command string, permissions []string) {
-	if m.mappings.Commands == nil {
-		m.mappings.Commands = make(map[string][]string)
-	}
-	
-	m.mappings.Commands[command] = permissions
-	
-	// Optionally save to file for persistence
-	m.SavePermissions()
 }
 
 // UpdateMappings updates the internal mappings with new data

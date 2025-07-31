@@ -47,6 +47,8 @@ Microsoft.Resources/subscriptions/resourceGroups/write
 * Language: Go (Golang)
 * Must compile as a standalone binary for both Windows and Linux
 * Avoid using OS-specific features or libraries
+* Must always query the Azure CLI command structure and RBAC permissions dynamically, rather than hardcoding them.
+* it should never generate any external files or require additional configuration files.
 
 ## Suggestions for Copilot
 
@@ -54,7 +56,6 @@ Microsoft.Resources/subscriptions/resourceGroups/write
 * Use the `os.Stdin` or `bufio.NewScanner(os.Stdin)` to read piped input.
 * Use regex or tokenization to parse the Azure CLI input.
 * Create a struct or map to model known Azure CLI commands and their required permissions.
-* Keep permissions data in a separate file (e.g., JSON or YAML) to allow future extensibility.
 * Focus on readable, idiomatic Go code.
 
 ## Example Permission Mapping (for testing)
