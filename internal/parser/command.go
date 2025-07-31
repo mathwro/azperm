@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mathwro/AzCliPermissions/internal/models"
+	"github.com/mathwro/azperm/internal/models"
 )
 
 // ParseAzureCommand parses an Azure CLI command string into a structured command

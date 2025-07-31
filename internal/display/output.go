@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/mathwro/AzCliPermissions/internal/models"
+	"github.com/mathwro/azperm/internal/models"
 )
 
 // Colors holds the color configurations for different output types

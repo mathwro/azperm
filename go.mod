@@ -1,4 +1,4 @@
-module github.com/mathwro/AzCliPermissions
+module github.com/mathwro/azperm
 
 go 1.24.4
 

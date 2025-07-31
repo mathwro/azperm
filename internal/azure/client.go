@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mathwro/AzCliPermissions/internal/models"
+	"github.com/mathwro/azperm/internal/models"
 )
 
 // Client represents an Azure API client

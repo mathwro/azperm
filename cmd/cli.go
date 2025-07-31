@@ -7,12 +7,12 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mathwro/AzCliPermissions/internal/azure"
-	"github.com/mathwro/AzCliPermissions/internal/display"
-	"github.com/mathwro/AzCliPermissions/internal/models"
-	"github.com/mathwro/AzCliPermissions/internal/parser"
-	"github.com/mathwro/AzCliPermissions/internal/permissions"
-	"github.com/mathwro/AzCliPermissions/internal/shell"
+	"github.com/mathwro/azperm/internal/azure"
+	"github.com/mathwro/azperm/internal/display"
+	"github.com/mathwro/azperm/internal/models"
+	"github.com/mathwro/azperm/internal/parser"
+	"github.com/mathwro/azperm/internal/permissions"
+	"github.com/mathwro/azperm/internal/shell"
 )
 
 // CLI represents the main CLI application

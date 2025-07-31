@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mathwro/AzCliPermissions/internal/models"
+	"github.com/mathwro/azperm/internal/models"
 )
 
 // Manager handles permission mappings and caching

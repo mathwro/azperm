@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mathwro/AzCliPermissions/cmd"
+	"github.com/mathwro/azperm/cmd"
 )
 
 func main() {
